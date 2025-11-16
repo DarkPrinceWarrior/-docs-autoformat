@@ -10,9 +10,21 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "GOST Document Formatter"
     VERSION: str = "1.0.0"
 
-    # Claude API
-    CLAUDE_API_KEY: str
+    # AI Provider Settings
+    AI_PROVIDER: str = "claude"  # claude, ollama, custom
+
+    # Claude API Settings
+    CLAUDE_API_KEY: Optional[str] = None
     CLAUDE_MODEL: str = "claude-3-5-sonnet-20241022"
+
+    # Ollama Settings
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.1"
+
+    # Custom API Settings (OpenAI-compatible)
+    CUSTOM_API_BASE_URL: Optional[str] = None
+    CUSTOM_API_KEY: Optional[str] = None
+    CUSTOM_API_MODEL: str = "gpt-3.5-turbo"
 
     # Database
     POSTGRES_USER: str = "gost_user"

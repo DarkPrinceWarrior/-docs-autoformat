@@ -4,7 +4,10 @@
 
 ## Возможности
 
-- **AI-анализ структуры документа** с помощью Claude API
+- **AI-анализ структуры документа** с поддержкой нескольких провайдеров:
+  - Claude API (облачный)
+  - Ollama (локальные модели)
+  - Пользовательские OpenAI-совместимые API
 - **Автоматическое форматирование** согласно ГОСТ 7.32-2017:
   - Шрифт Times New Roman 14pt
   - Полуторный межстрочный интервал
@@ -24,7 +27,10 @@
 ### Backend
 - **FastAPI** - современный веб-фреймворк для API
 - **python-docx** - библиотека для работы с документами Word
-- **Claude API** - искусственный интеллект для анализа структуры
+- **AI Providers** - модульная система поддержки различных AI-провайдеров:
+  - Claude API (Anthropic)
+  - Ollama (локальные LLM)
+  - Custom API (OpenAI-совместимые)
 - **PostgreSQL** - база данных для хранения истории
 - **Celery + Redis** - асинхронная обработка задач
 
@@ -42,7 +48,10 @@
 ### Предварительные требования
 
 - Docker и Docker Compose
-- Claude API ключ (получить на https://console.anthropic.com)
+- AI провайдер (один из):
+  - Claude API ключ (получить на https://console.anthropic.com)
+  - Ollama с локальной моделью (см. [LOCAL_MODELS.md](LOCAL_MODELS.md))
+  - OpenAI API ключ или другой совместимый API
 
 ### Установка и запуск
 
@@ -57,10 +66,30 @@ cd -docs-autoformat
 cp .env.example .env
 ```
 
-3. **Добавьте ваш Claude API ключ в .env:**
+3. **Настройте AI провайдер в .env:**
+
+**Вариант A: Claude API (по умолчанию):**
 ```env
+AI_PROVIDER=claude
 CLAUDE_API_KEY=your_actual_api_key_here
 ```
+
+**Вариант B: Ollama (локальная модель):**
+```env
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1
+```
+
+**Вариант C: Custom API (OpenAI и т.д.):**
+```env
+AI_PROVIDER=custom
+CUSTOM_API_BASE_URL=https://api.openai.com
+CUSTOM_API_KEY=your_openai_key
+CUSTOM_API_MODEL=gpt-3.5-turbo
+```
+
+Подробнее о локальных моделях: [LOCAL_MODELS.md](LOCAL_MODELS.md)
 
 4. **Запустите приложение с помощью Docker Compose:**
 ```bash
@@ -179,7 +208,10 @@ celery -A app.tasks.celery_app worker --loglevel=info
 Смотрите файл `.env.example` для полного списка доступных переменных окружения.
 
 Основные переменные:
-- `CLAUDE_API_KEY` - Ключ API Claude (обязательно)
+- `AI_PROVIDER` - Выбор AI провайдера (claude, ollama, custom)
+- `CLAUDE_API_KEY` - Ключ API Claude (если AI_PROVIDER=claude)
+- `OLLAMA_BASE_URL` - URL Ollama сервера (если AI_PROVIDER=ollama)
+- `CUSTOM_API_BASE_URL` - URL пользовательского API (если AI_PROVIDER=custom)
 - `POSTGRES_*` - Настройки базы данных PostgreSQL
 - `REDIS_HOST` - Хост Redis для Celery
 - `MAX_FILE_SIZE` - Максимальный размер загружаемого файла
@@ -191,7 +223,8 @@ celery -A app.tasks.celery_app worker --loglevel=info
 - **Добавление новых шаблонов ГОСТ**: Создайте новый класс-наследник `GOSTFormatter`
 - **Специфичные требования вузов**: Реализуйте дополнительные методы форматирования
 - **Новые форматы документов**: Расширьте `DocxProcessor` для поддержки других форматов
-- **Дополнительный AI-анализ**: Расширьте `ClaudeDocumentAnalyzer` новыми методами анализа
+- **Новые AI-провайдеры**: Реализуйте `BaseAIProvider` для добавления новых моделей
+- **Дополнительный AI-анализ**: Расширьте функциональность провайдеров новыми методами
 
 ## Требования ГОСТ 7.32-2017
 

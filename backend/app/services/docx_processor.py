@@ -1,7 +1,7 @@
 from docx import Document
 from typing import Dict, Any, Tuple
 import os
-from app.services.claude_analyzer import ClaudeDocumentAnalyzer
+from app.services.document_analyzer import DocumentAnalyzer
 from app.services.gost_formatter import GOSTFormatter
 
 
@@ -9,7 +9,7 @@ class DocxProcessor:
     """Основной процессор для обработки DOCX документов"""
 
     def __init__(self):
-        self.analyzer = ClaudeDocumentAnalyzer()
+        self.analyzer = DocumentAnalyzer()
         self.formatter = GOSTFormatter()
 
     def extract_text(self, doc: Document) -> str:
@@ -62,7 +62,7 @@ class DocxProcessor:
             if not text_content.strip():
                 raise ValueError("Документ пустой или не содержит текста")
 
-            # Анализируем структуру с помощью Claude
+            # Анализируем структуру с помощью AI
             structure = await self.analyzer.analyze_document_structure(text_content)
 
             # Применяем форматирование ГОСТ
