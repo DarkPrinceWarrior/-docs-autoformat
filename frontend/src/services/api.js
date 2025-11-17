@@ -9,9 +9,10 @@ const api = axios.create({
   },
 });
 
-export const uploadDocument = async (file) => {
+export const uploadDocument = async (file, template = 'gost_vkr') => {
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('template', template);
 
   const response = await api.post('/documents/upload', formData, {
     headers: {
@@ -38,6 +39,11 @@ export const getDocuments = async (skip = 0, limit = 100) => {
   const response = await api.get('/documents/documents', {
     params: { skip, limit },
   });
+  return response.data;
+};
+
+export const getTemplates = async () => {
+  const response = await api.get('/documents/templates');
   return response.data;
 };
 

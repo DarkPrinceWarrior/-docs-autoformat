@@ -17,8 +17,17 @@ const DocumentItem = ({ document, onDownload }) => {
     }
   };
 
+  const getTemplateName = (templateCode) => {
+    const templates = {
+      'gost_vkr': 'ГОСТ ВКР',
+      'gost_coursework': 'ГОСТ Курсовая работа',
+    };
+    return templates[templateCode] || templateCode;
+  };
+
   const statusInfo = getStatusInfo(document.status);
   const createdDate = new Date(document.created_at).toLocaleString('ru-RU');
+  const templateName = getTemplateName(document.template_name);
 
   return (
     <div className="document-item">
@@ -29,6 +38,9 @@ const DocumentItem = ({ document, onDownload }) => {
             {document.original_filename}
           </h3>
           <p className="document-date">{createdDate}</p>
+          <p className="document-template">
+            <span className="template-badge">{templateName}</span>
+          </p>
         </div>
       </div>
 

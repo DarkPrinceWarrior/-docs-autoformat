@@ -1,12 +1,31 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { uploadDocument } from '../services/api';
+import { uploadDocument, getTemplates } from '../services/api';
 import './FileUploader.css';
 
 const FileUploader = ({ onUploadSuccess }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState('gost_vkr');
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+
+  // Загрузка доступных шаблонов при монтировании компонента
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const templatesData = await getTemplates();
+        setTemplates(templatesData);
+        setLoadingTemplates(false);
+      } catch (err) {
+        console.error('Ошибка при загрузке шаблонов:', err);
+        setLoadingTemplates(false);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -26,7 +45,7 @@ const FileUploader = ({ onUploadSuccess }) => {
     setSuccess(null);
 
     try {
-      const result = await uploadDocument(file);
+      const result = await uploadDocument(file, selectedTemplate);
       setSuccess(`Файл "${file.name}" успешно загружен! Идет обработка...`);
 
       if (onUploadSuccess) {
@@ -40,7 +59,7 @@ const FileUploader = ({ onUploadSuccess }) => {
     } finally {
       setUploading(false);
     }
-  }, [onUploadSuccess]);
+  }, [onUploadSuccess, selectedTemplate]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -52,6 +71,41 @@ const FileUploader = ({ onUploadSuccess }) => {
 
   return (
     <div className="file-uploader">
+      {/* Селектор шаблонов */}
+      <div className="template-selector">
+        <label htmlFor="template-select" className="template-label">
+          Выберите шаблон форматирования:
+        </label>
+        {loadingTemplates ? (
+          <div className="template-loading">Загрузка шаблонов...</div>
+        ) : (
+          <>
+            <select
+              id="template-select"
+              value={selectedTemplate}
+              onChange={(e) => setSelectedTemplate(e.target.value)}
+              className="template-select"
+              disabled={uploading}
+            >
+              {templates.map((template) => (
+                <option key={template.name} value={template.name}>
+                  {template.description}
+                </option>
+              ))}
+            </select>
+            {templates.find(t => t.name === selectedTemplate) && (
+              <div className="template-info">
+                <p className="template-details">
+                  <strong>Шрифт:</strong> {templates.find(t => t.name === selectedTemplate).font} |
+                  <strong> Размер:</strong> {templates.find(t => t.name === selectedTemplate).font_size} |
+                  <strong> Интервал:</strong> {templates.find(t => t.name === selectedTemplate).line_spacing}
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       <div
         {...getRootProps()}
         className={`dropzone ${isDragActive ? 'active' : ''} ${uploading ? 'uploading' : ''}`}
