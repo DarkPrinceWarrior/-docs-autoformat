@@ -21,6 +21,9 @@ const DocumentItem = ({ document, onDownload }) => {
     const templates = {
       'gost_vkr': 'ГОСТ ВКР',
       'gost_coursework': 'ГОСТ Курсовая работа',
+      'gost_referat': 'ГОСТ Реферат',
+      'gost_practice_report': 'ГОСТ Отчёт по практике',
+      'gost_article': 'ГОСТ Научная статья',
     };
     return templates[templateCode] || templateCode;
   };

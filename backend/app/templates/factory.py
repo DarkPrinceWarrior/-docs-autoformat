@@ -2,6 +2,9 @@ from typing import Dict, List
 from app.templates.base import BaseTemplate
 from app.templates.gost_vkr import GOSTVKRTemplate
 from app.templates.gost_coursework import GOSTCourseworkTemplate
+from app.templates.gost_referat import GOSTReferatTemplate
+from app.templates.gost_practice_report import GOSTPracticeReportTemplate
+from app.templates.gost_article import GOSTArticleTemplate
 
 
 class TemplateFactory:
@@ -10,6 +13,9 @@ class TemplateFactory:
     _templates = {
         "gost_vkr": GOSTVKRTemplate,
         "gost_coursework": GOSTCourseworkTemplate,
+        "gost_referat": GOSTReferatTemplate,
+        "gost_practice_report": GOSTPracticeReportTemplate,
+        "gost_article": GOSTArticleTemplate,
     }
 
     @classmethod
