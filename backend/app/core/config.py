@@ -51,6 +51,18 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:8000"]
 
+    # Logging
+    LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    LOG_FILE: str = "logs/app.log"
+    JSON_LOGS: bool = True  # Use JSON format for structured logging
+    LOG_MAX_BYTES: int = 10485760  # 10MB
+    LOG_BACKUP_COUNT: int = 5
+
+    # Security & Rate Limiting
+    ENABLE_RATE_LIMITING: bool = True  # Enable rate limiting
+    RATE_LIMIT_PER_MINUTE: int = 200  # Default rate limit per minute
+    ALLOWED_HOSTS: list = ["*"]  # Allowed hosts for production
+
     class Config:
         env_file = ".env"
         case_sensitive = True
