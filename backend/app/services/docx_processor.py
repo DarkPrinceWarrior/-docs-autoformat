@@ -2,15 +2,23 @@ from docx import Document
 from typing import Dict, Any, Tuple
 import os
 from app.services.document_analyzer import DocumentAnalyzer
-from app.services.gost_formatter import GOSTFormatter
+from app.templates.factory import TemplateFactory
+from app.templates.base import BaseTemplate
 
 
 class DocxProcessor:
     """Основной процессор для обработки DOCX документов"""
 
-    def __init__(self):
+    def __init__(self, template_name: str = "gost_vkr"):
+        """
+        Инициализация процессора
+
+        Args:
+            template_name: Название шаблона форматирования
+        """
         self.analyzer = DocumentAnalyzer()
-        self.formatter = GOSTFormatter()
+        self.template = TemplateFactory.create_template(template_name)
+        self.template_name = template_name
 
     def extract_text(self, doc: Document) -> str:
         """
@@ -40,8 +48,8 @@ class DocxProcessor:
         Полный цикл обработки документа:
         1. Открытие документа
         2. Извлечение текста
-        3. Анализ структуры с Claude
-        4. Применение форматирования ГОСТ
+        3. Анализ структуры с помощью AI
+        4. Применение форматирования по шаблону
         5. Сохранение результата
 
         Args:
@@ -65,11 +73,8 @@ class DocxProcessor:
             # Анализируем структуру с помощью AI
             structure = await self.analyzer.analyze_document_structure(text_content)
 
-            # Применяем форматирование ГОСТ
-            formatted_doc = self.formatter.apply_gost_formatting(doc, structure)
-
-            # Форматируем список литературы
-            formatted_doc = self.formatter.format_references(formatted_doc)
+            # Применяем форматирование согласно выбранному шаблону
+            formatted_doc = self.template.apply_formatting(doc, structure)
 
             # Сохраняем результат
             formatted_doc.save(output_path)

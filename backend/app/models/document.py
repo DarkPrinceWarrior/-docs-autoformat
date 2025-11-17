@@ -20,6 +20,7 @@ class Document(Base):
     original_filename = Column(String(255), nullable=False)
     original_file_path = Column(String(500), nullable=False)
     formatted_file_path = Column(String(500), nullable=True)
+    template_name = Column(String(100), default="gost_vkr", nullable=False)  # Используемый шаблон
     status = Column(SQLEnum(DocumentStatus), default=DocumentStatus.UPLOADED, nullable=False)
     structure_analysis = Column(Text, nullable=True)  # JSON с результатами анализа
     error_message = Column(Text, nullable=True)

@@ -10,13 +10,7 @@ import json
 
 class DatabaseTask(Task):
     """Базовая задача с поддержкой асинхронной работы с БД"""
-    _processor = None
-
-    @property
-    def processor(self):
-        if self._processor is None:
-            self._processor = DocxProcessor()
-        return self._processor
+    pass
 
 
 @celery_app.task(bind=True, base=DatabaseTask, name="process_document")
@@ -44,8 +38,11 @@ def process_document_task(self, document_id: int):
                 document.status = DocumentStatus.PROCESSING
                 await session.commit()
 
+                # Создаем процессор с указанным шаблоном
+                processor = DocxProcessor(template_name=document.template_name)
+
                 # Обрабатываем документ
-                output_path, structure = await self.processor.process_document(
+                output_path, structure = await processor.process_document(
                     input_path=document.original_file_path,
                     output_path=document.original_file_path.replace('.docx', '_formatted.docx')
                 )

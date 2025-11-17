@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -6,7 +6,8 @@ from app.core.database import get_db
 from app.models.document import Document, DocumentStatus
 from app.tasks.document_tasks import process_document_task
 from app.core.config import settings
-from typing import List
+from app.templates.factory import TemplateFactory
+from typing import List, Optional
 from pydantic import BaseModel
 import os
 import shutil
@@ -19,6 +20,7 @@ class DocumentResponse(BaseModel):
     """Модель ответа с информацией о документе"""
     id: int
     original_filename: str
+    template_name: str
     status: str
     created_at: str
     structure_analysis: str | None = None
@@ -28,6 +30,15 @@ class DocumentResponse(BaseModel):
         from_attributes = True
 
 
+class TemplateInfo(BaseModel):
+    """Информация о шаблоне форматирования"""
+    name: str
+    description: str
+    font: str
+    font_size: str
+    line_spacing: str
+
+
 class TaskStatusResponse(BaseModel):
     """Модель ответа со статусом задачи"""
     task_id: str
@@ -35,16 +46,35 @@ class TaskStatusResponse(BaseModel):
     document_id: int | None = None
 
 
+@router.get("/templates", response_model=List[TemplateInfo])
+async def get_available_templates():
+    """
+    Получение списка доступных шаблонов форматирования
+
+    Возвращает информацию о всех доступных шаблонах
+    """
+    templates = TemplateFactory.get_available_templates()
+    return templates
+
+
 @router.post("/upload", response_model=DocumentResponse)
 async def upload_document(
     file: UploadFile = File(...),
+    template: str = Form("gost_vkr"),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Загрузка документа для обработки
 
     - **file**: DOCX файл для обработки
+    - **template**: Название шаблона форматирования (по умолчанию: gost_vkr)
     """
+
+    # Проверяем, что шаблон существует
+    try:
+        TemplateFactory.create_template(template)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     # Проверяем расширение файла
     if not file.filename.endswith('.docx'):
@@ -85,6 +115,7 @@ async def upload_document(
     document = Document(
         original_filename=file.filename,
         original_file_path=file_path,
+        template_name=template,
         status=DocumentStatus.UPLOADED
     )
 
@@ -98,6 +129,7 @@ async def upload_document(
     return DocumentResponse(
         id=document.id,
         original_filename=document.original_filename,
+        template_name=document.template_name,
         status=document.status.value,
         created_at=str(document.created_at),
         structure_analysis=document.structure_analysis,
@@ -127,6 +159,7 @@ async def get_document_status(
     return DocumentResponse(
         id=document.id,
         original_filename=document.original_filename,
+        template_name=document.template_name,
         status=document.status.value,
         created_at=str(document.created_at),
         structure_analysis=document.structure_analysis,
@@ -198,6 +231,7 @@ async def list_documents(
         DocumentResponse(
             id=doc.id,
             original_filename=doc.original_filename,
+            template_name=doc.template_name,
             status=doc.status.value,
             created_at=str(doc.created_at),
             structure_analysis=doc.structure_analysis,
