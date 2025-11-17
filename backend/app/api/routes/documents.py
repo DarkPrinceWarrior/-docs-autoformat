@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
@@ -7,7 +7,11 @@ from app.models.document import Document, DocumentStatus
 from app.tasks.document_tasks import process_document_task
 from app.core.config import settings
 from app.templates.factory import TemplateFactory
-from typing import List, Optional
+from app.services.gost_validator import GOSTValidator
+from app.services.toc_generator import TOCGenerator
+from app.services.bibliography_formatter import BibliographyFormatter
+from app.services.figure_table_numbering import FigureTableNumbering
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 import os
 import shutil
@@ -239,3 +243,173 @@ async def list_documents(
         )
         for doc in documents
     ]
+
+
+@router.post("/documents/{document_id}/validate")
+async def validate_document(
+    document_id: int,
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Валидация документа на соответствие ГОСТ
+
+    - **document_id**: ID документа для валидации
+    """
+    result = await db.execute(
+        select(Document).where(Document.id == document_id)
+    )
+    document = result.scalar_one_or_none()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Документ не найден")
+
+    if document.status != DocumentStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail="Документ еще не обработан. Валидация доступна только для завершенных документов"
+        )
+
+    if not document.formatted_file_path or not os.path.exists(document.formatted_file_path):
+        raise HTTPException(
+            status_code=404,
+            detail="Отформатированный файл не найден"
+        )
+
+    # Validate document
+    validator = GOSTValidator(template_name=document.template_name)
+    validation_result = validator.validate_document(document.formatted_file_path)
+
+    return validation_result
+
+
+@router.post("/documents/{document_id}/generate-toc")
+async def generate_toc(
+    document_id: int,
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Генерация оглавления для документа
+
+    - **document_id**: ID документа
+    """
+    result = await db.execute(
+        select(Document).where(Document.id == document_id)
+    )
+    document = result.scalar_one_or_none()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Документ не найден")
+
+    if document.status != DocumentStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail="Генерация TOC доступна только для завершенных документов"
+        )
+
+    if not document.formatted_file_path or not os.path.exists(document.formatted_file_path):
+        raise HTTPException(
+            status_code=404,
+            detail="Отформатированный файл не найден"
+        )
+
+    # Generate TOC structure
+    toc_generator = TOCGenerator(template_name=document.template_name)
+
+    from docx import Document as DocxDocument
+    doc = DocxDocument(document.formatted_file_path)
+
+    toc_structure = toc_generator.get_toc_structure(doc)
+
+    return {
+        'document_id': document_id,
+        'toc': toc_structure,
+        'message': 'Оглавление сгенерировано. Используйте /insert-toc для вставки в документ'
+    }
+
+
+@router.post("/documents/{document_id}/validate-bibliography")
+async def validate_bibliography(
+    document_id: int,
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Проверка списка литературы
+
+    - **document_id**: ID документа
+    """
+    result = await db.execute(
+        select(Document).where(Document.id == document_id)
+    )
+    document = result.scalar_one_or_none()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Документ не найден")
+
+    if document.status != DocumentStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail="Проверка библиографии доступна только для завершенных документов"
+        )
+
+    if not document.formatted_file_path or not os.path.exists(document.formatted_file_path):
+        raise HTTPException(
+            status_code=404,
+            detail="Отформатированный файл не найден"
+        )
+
+    # Validate bibliography
+    bib_formatter = BibliographyFormatter(template_name=document.template_name)
+
+    from docx import Document as DocxDocument
+    doc = DocxDocument(document.formatted_file_path)
+
+    validation_result = bib_formatter.validate_bibliography(doc)
+
+    return {
+        'document_id': document_id,
+        'validation': validation_result
+    }
+
+
+@router.post("/documents/{document_id}/validate-numbering")
+async def validate_numbering(
+    document_id: int,
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Проверка нумерации таблиц и рисунков
+
+    - **document_id**: ID документа
+    """
+    result = await db.execute(
+        select(Document).where(Document.id == document_id)
+    )
+    document = result.scalar_one_or_none()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Документ не найден")
+
+    if document.status != DocumentStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail="Проверка нумерации доступна только для завершенных документов"
+        )
+
+    if not document.formatted_file_path or not os.path.exists(document.formatted_file_path):
+        raise HTTPException(
+            status_code=404,
+            detail="Отформатированный файл не найден"
+        )
+
+    # Validate numbering
+    numbering = FigureTableNumbering(template_name=document.template_name)
+
+    from docx import Document as DocxDocument
+    doc = DocxDocument(document.formatted_file_path)
+
+    validation_result = numbering.validate_numbering(doc)
+
+    return {
+        'document_id': document_id,
+        'validation': validation_result
+    }
